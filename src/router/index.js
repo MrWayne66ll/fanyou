@@ -1,6 +1,7 @@
 import Vue from 'vue'
 import Router from 'vue-router'
 import foodList from '../views/FoodList'
+import selfPage from '../views/SelfPage'
 
 Vue.use(Router)
 
@@ -13,6 +14,10 @@ export default new Router({
     {
       path: '/foodlist',
       component: foodList
+    },
+    {
+      path: '/selfpage',
+      component: selfPage
     }
   ]
 })

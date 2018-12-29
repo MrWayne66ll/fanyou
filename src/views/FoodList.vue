@@ -1,12 +1,49 @@
 <template>
     <div>
+      <el-dialog title="发布食物" :visible.sync="dialogFormVisible">
+        <el-form :model="form" :rules="rules">
+          <el-form-item label="食物名称" prop="food_name" :label-width="formLabelWidth">
+            <el-input v-model="form.food_name" autocomplete="off"></el-input>
+          </el-form-item>
+          <el-form-item label="食物类型" :label-width="formLabelWidth">
+            <el-select v-model="form.food_type" placeholder="请选择活动区域">
+              <el-option label="早餐" value="breakfast"></el-option>
+              <el-option label="午餐" value="lunch"></el-option>
+              <el-option label="晚餐" value="dinner"></el-option>
+              <el-option label="夜宵" value="nightingale"></el-option>
+            </el-select>
+          </el-form-item>
+          <el-form-item label="食物日期" :label-width="formLabelWidth">
+            <div class="block">
+              <!--<span class="demonstration">带快捷选项</span>-->
+              <el-date-picker
+                v-model="form.food_date"
+                align="right"
+                type="date"
+                placeholder="选择日期"
+                :picker-options="pickerOptions1">
+              </el-date-picker>
+            </div>
+          </el-form-item>
+          <el-form-item label="备注" :label-width="formLabelWidth">
+            <el-input v-model="form.comment" autocomplete="off"></el-input>
+          </el-form-item>
+        </el-form>
+        <div slot="footer" class="dialog-footer">
+          <el-button @click="dialogFormVisible = false">取 消</el-button>
+          <el-button type="primary" @click="releaseFood">确 定</el-button>
+        </div>
+      </el-dialog>
       <el-tabs v-model="activeName" @tab-click="handleClick" type="border-card">
-        <el-tab-pane label="用户管理" name="first">
+        <el-tab-pane label="已发布的食物" name="first">
           <el-row>
+            <el-co :span="2" style="margin: 30px;">
+              <el-button type="primary" plain @click="dialogFormVisible = true">发布食物</el-button>
+            </el-co>
             <el-col :span="6" style="margin: 10px auto;float: right;">
               <span>日期：</span>
               <el-date-picker
-                v-model="value7"
+                v-model="time_select_value"
                 type="daterange"
                 align="right"
                 unlink-panels
@@ -30,7 +67,7 @@
           </el-row>
           <el-row gutter="60" style="margin:20px auto">
             <el-col :span="4" v-for="(food,index) of foodList" :key="index">
-              <el-card :body-style="{ padding: '0px' }">
+              <el-card :body-style="{ padding: '0px' }" @click.native="foodDetail(food)">
                 <img src="../assets/logo.png" class="image">
                 <div style="padding: 14px;">
                   <span>{{food['food_name']}}</span>
@@ -48,9 +85,7 @@
             </el-col>
           </el-row>
         </el-tab-pane>
-        <el-tab-pane label="配置管理" name="second">配置管理</el-tab-pane>
-        <el-tab-pane label="角色管理" name="third">角色管理</el-tab-pane>
-        <el-tab-pane label="定时任务补偿" name="fourth">定时任务补偿</el-tab-pane>
+        <!--<el-tab-pane label="配置管理" name="second">配置管理</el-tab-pane>-->
       </el-tabs>
     </div>
 </template>
@@ -61,6 +96,38 @@ export default {
   name: 'outList',
   data () {
     return {
+      pickerOptions1: {
+        disabledDate (time) {
+          return time.getTime() < (Date.now() - 3600 * 1000 * 24)
+        },
+        shortcuts: [{
+          text: '今天',
+          onClick (picker) {
+            picker.$emit('pick', new Date())
+          }
+        }, {
+          text: '明天',
+          onClick (picker) {
+            const date = new Date()
+            date.setTime(date.getTime() + 3600 * 1000 * 24)
+            picker.$emit('pick', date)
+          }
+        }, {
+          text: '后天',
+          onClick (picker) {
+            const date = new Date()
+            date.setTime(date.getTime() + 3600 * 1000 * 24 * 2)
+            picker.$emit('pick', date)
+          }
+        }, {
+          text: '一周之后',
+          onClick (picker) {
+            const date = new Date()
+            date.setTime(date.getTime() + 3600 * 1000 * 24 * 7)
+            picker.$emit('pick', date)
+          }
+        }]
+      },
       activeName: 'first',
       currentDate: new Date(),
       options: [{
@@ -78,8 +145,22 @@ export default {
       }],
       food_type: [],
       value11: [],
+      rules: {
+        food_name: [
+          { require: true, message: '请输入食物名称', trigger: 'blur' },
+          { min: 1, max: 10, message: '长度不能超过10个字哟~', trigger: 'blur' }
+        ]
+      },
       pickerOptions2: {
         shortcuts: [{
+          text: '查看今天',
+          onClick (picker) {
+            const end = new Date()
+            const start = new Date()
+            // start.setTime(start.getTime() - 3600 * 1000 * 24 * 90)
+            picker.$emit('pick', [start, end])
+          }
+        }, {
           text: '最近一周',
           onClick (picker) {
             const end = new Date()
@@ -95,23 +176,33 @@ export default {
             start.setTime(start.getTime() - 3600 * 1000 * 24 * 30)
             picker.$emit('pick', [start, end])
           }
-        }, {
-          text: '最近三个月',
-          onClick (picker) {
-            const end = new Date()
-            const start = new Date()
-            start.setTime(start.getTime() - 3600 * 1000 * 24 * 90)
-            picker.$emit('pick', [start, end])
-          }
         }]
       },
-      value6: '',
-      value7: '',
-      foodList: []
+      time_select_value: '',
+      foodList: [],
+      dialogFormVisible: false,
+      form: {
+        food_name: '',
+        food_type: '',
+        food_date: '',
+        comment: ''
+      },
+      formLabelWidth: '120px'
     }
   },
   mounted () {
     this.initFood()
+  },
+  computed: {
+    food_date_form: function () {
+      var dateStr = ''
+      if (this.form.food_date !== '') {
+        var date = new Date(this.form.food_date)
+        var month = date.getMonth() + 1
+        dateStr = date.getFullYear() + '-' + month + '-' + date.getDate()
+      }
+      return dateStr
+    }
   },
   watch: {
     food_type: function (val) {
@@ -127,30 +218,97 @@ export default {
         vm.foodList = response.data['data']['food_list']
       }
       )
+    },
+    time_select_value: function (val) {
+      var vm = this
+      var date1 = new Date(val[0])
+      var month1 = date1.getMonth() + 1
+      var startStr = date1.getFullYear() + '-' + month1 + '-' + date1.getDate()
+      var date2 = new Date(val[1])
+      var month2 = date2.getMonth() + 1
+      var endStr = date2.getFullYear() + '-' + month2 + '-' + date2.getDate()
+      axios.get('http://127.0.0.1/api/v0/food/foodlist', {
+        params: {
+          'start_time': startStr,
+          'end_time': endStr
+        },
+        headers: {
+          'Username': 'fengchuanling'
+        }
+      }).then(function (response) {
+        console.log(response.request.responseURL)
+        console.log(response.data)
+        vm.foodList = response.data['data']['food_list']
+      })
     }
   },
   methods: {
+    releaseFood: function () {
+      var vm = this
+      vm.dialogFormVisible = false
+      axios.post('http://127.0.0.1/api/v0/food/create', {
+        'food_name': vm.form.food_name,
+        'comment': vm.form.comment,
+        'food_type': vm.form.food_type,
+        'food_date': vm.food_date_form
+      }, {
+        headers: {
+          'Username': 'fengchuanling'
+        }
+      }).then(function (response) {
+        console.log(response)
+        vm.initFood()
+        vm.form.food_name = ''
+        vm.form.food_type = ''
+        vm.form.food_date = ''
+        vm.form.comment = ''
+      }
+      )
+    },
     handleClick (tab, event) {
-      console.log(tab, event)
+      // console.log(tab, event)
+    },
+    foodDetail (food) {
+      var vm = this
+      var alertStr = '是否确认抢夺 ' + food.food_name
+      this.$confirm(alertStr, '确认', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(function () {
+        axios.post('http://127.0.0.1/api/v0/order/create', {
+          'food_id': parseInt(food.id)
+        }, {
+          headers: {
+            'Username': 'fengchuanling'
+          }
+        }).then(function () {
+          vm.initFood()
+          vm.$message({
+            type: 'success',
+            message: '成功抢夺' + food.food_name
+          })
+        }).catch(function () {
+          vm.initFood()
+          vm.$message({
+            type: 'warning',
+            message: '抢夺失败，手不够快~'
+          })
+        })
+      })
     },
     initFood () {
       let vm = this
-      axios.get('http://127.0.0.1/api/v0/food/foodlist', {
+      axios.get('http://127.0.0.1/api/v0/food/foodlist?', {
         params: {},
         headers: {
           'Username': 'fengchuanling'
         }
       }).then(
         function (response) {
-          console.log(response.data)
-          // console.log(response.data['data']['food_list'])
           vm.foodList = response.data['data']['food_list']
-          // if (response.data['error_code'] === '0') {
-          //   console.log(response.data['data'])
-          // }
         }
       )
-      console.log(vm.foodList)
     }
   }
 }
