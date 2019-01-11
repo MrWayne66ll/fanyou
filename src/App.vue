@@ -10,7 +10,9 @@
         </router-link>
       </el-header>
       <el-main>
+        <!--<transition>-->
         <router-view></router-view>
+        <!--</transition>-->
       </el-main>
       <el-footer>Footer</el-footer>
     </el-container>

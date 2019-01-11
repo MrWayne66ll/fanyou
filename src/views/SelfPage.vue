@@ -9,7 +9,7 @@
           <el-col :span="4" v-for="(order,index) of orderList" :key="index">
             <!--<el-card :body-style="{ padding: '0px' }" @mouseover.native="changeCard1" v-if="showCard1">-->
             <el-card :body-style="{ padding: '0px' }">
-              <img src="../assets/logo.png" class="image">
+              <img src="../assets/logo.png" class="image" alt="missing my beautiful img">
               <div style="padding: 14px;">
                 <span>{{order['food_name']}}</span>
                 <span class="food_type">{{order['food_type_cn']}}</span>
@@ -49,15 +49,24 @@
             <hr>
           </div>
         </el-row>
-        <el-row>
-          <div class="font_alert" v-if="orderTableIsExist"><span>啥都没有，快去抢些吧~</span></div>
-        </el-row>
+        <!--<el-row>-->
+          <!--<div class="font_alert" v-if="orderTableIsExist"><span>啥都没有，快去抢些吧~</span></div>-->
+        <!--</el-row>-->
         <el-row>
           <template>
+            <span>
+              操作历史
+            </span>
+            <el-button type="primary" icon="el-icon-delete" style="float: right" @click="deleteHistory">清除历史</el-button>
             <el-table
               :data="tableData"
               style="width: 96%; margin: auto"
               stripe="true">
+              <!--<el-table-column-->
+                <!--prop="order_id"-->
+                <!--label="ID"-->
+              <!--&gt;-->
+              <!--</el-table-column>-->
               <el-table-column
                 prop="food_name"
                 label="食物名称"
@@ -84,16 +93,12 @@
         <el-row>
           <div class="block">
             <el-pagination
+              :current-page="currentPage"
+              :page-size="pageSize"
               layout="prev, pager, next"
-              :total="tableTotal">
+              :total="tableTotal" @current-change="changeTablePage">
             </el-pagination>
           </div>
-          <!--<div class="block">-->
-            <!--<el-pagination-->
-              <!--layout="prev, pager, next"-->
-              <!--:total="1000">-->
-            <!--</el-pagination>-->
-          <!--</div>-->
         </el-row>
       </el-tab-pane>
       <el-tab-pane label="我的发布" name="second">配置管理</el-tab-pane>
@@ -112,12 +117,14 @@ export default {
       orderListIsExist: true,
       orderTableIsExist: true,
       tableData: [],
-      tableTotal: 0
+      tableTotal: 0,
+      currentPage: 1,
+      pageSize: 10
     }
   },
   mounted () {
     this.initOrderList()
-    this.initOrderTable()
+    this.initOrderTable(0, 10)
   },
   methods: {
     handleClick (tab, event) {
@@ -141,10 +148,13 @@ export default {
         }
       )
     },
-    initOrderTable () {
+    initOrderTable (offset, limit) {
       let vm = this
       axios.get('http://127.0.0.1/api/v0/order/orderlist?wait_or_not=2', {
-        params: {},
+        params: {
+          'offset': offset,
+          'limit': limit
+        },
         headers: {
           'Username': 'fengchuanling'
         }
@@ -178,12 +188,14 @@ export default {
           }
         }).then(function () {
           vm.initOrderList()
+          vm.initOrderTable()
           vm.$message({
             type: 'success',
             message: '已确认获取' + order['food_name']
           })
         }).catch(function () {
           vm.initOrderList()
+          vm.initOrderTable()
           vm.$message({
             type: 'warning',
             message: '确认失败请重试'
@@ -209,17 +221,54 @@ export default {
           }
         }).then(function () {
           vm.initOrderList()
+          vm.initOrderTable(0, 10)
           vm.$message({
             type: 'success',
             message: '成功丢弃' + order['food_name']
           })
         }).catch(function () {
           vm.initOrderList()
+          vm.initOrderTable(0, 10)
           vm.$message({
             type: 'warning',
             message: '丢弃失败'
           })
         })
+      })
+    },
+    changeTablePage (val) {
+      var vm = this
+      var offset = (val - 1) * 10
+      vm.initOrderTable(offset, 10)
+    },
+    deleteHistory () {
+      var vm = this
+      this.$confirm('是否清除操作历史', '确认', {
+        confirmButtonText: '确认',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(function () {
+        axios.get('http://127.0.0.1/api/v0/order/deletehistory', {
+          params: {
+          },
+          headers: {
+            'Username': 'fengchuanling'
+          }
+        })
+          .then(function () {
+            vm.initOrderTable(0, 10)
+            vm.$message({
+              type: 'success',
+              message: '清除历史成功'
+            })
+          })
+          .catch(function () {
+            vm.initOrderTable(0, 10)
+            vm.$message({
+              type: 'warning',
+              message: '清除历史失败'
+            })
+          })
       })
     }
   }
