@@ -84,6 +84,15 @@
               </div>
             </el-col>
           </el-row>
+          <el-row>
+            <div class="block">
+              <el-pagination
+                :page-size="pageSize"
+                layout="prev, pager, next"
+                :total="foodTotal" @current-change="changeFoodPage">
+              </el-pagination>
+            </div>
+          </el-row>
         </el-tab-pane>
         <!--<el-tab-pane label="配置管理" name="second">配置管理</el-tab-pane>-->
       </el-tabs>
@@ -128,6 +137,8 @@ export default {
           }
         }]
       },
+      foodTotal: 0,
+      pageSize: 12,
       activeName: 'first',
       currentDate: new Date(),
       options: [{
@@ -149,6 +160,9 @@ export default {
         food_name: [
           { require: true, message: '请输入食物名称', trigger: 'blur' },
           { min: 1, max: 10, message: '长度不能超过10个字哟~', trigger: 'blur' }
+        ],
+        comment: [
+          { min: 0, max: 16, message: '长度不能超过16个字哟~', trigger: 'blur' }
         ]
       },
       pickerOptions2: {
@@ -191,7 +205,7 @@ export default {
     }
   },
   mounted () {
-    this.initFood()
+    this.initFood(0, 12)
   },
   computed: {
     food_date_form: function () {
@@ -209,7 +223,9 @@ export default {
       let vm = this
       axios.get('http://127.0.0.1/api/v0/food/foodlist', {
         params: {
-          'food_type': val
+          'food_type': val,
+          'offset': 0,
+          'limit': 12
         },
         headers: {
           'Username': 'fengchuanling'
@@ -257,7 +273,7 @@ export default {
         }
       }).then(function (response) {
         console.log(response)
-        vm.initFood()
+        vm.initFood(0, 12)
         vm.form.food_name = ''
         vm.form.food_type = ''
         vm.form.food_date = ''
@@ -283,13 +299,13 @@ export default {
             'Username': 'fengchuanling'
           }
         }).then(function () {
-          vm.initFood()
+          vm.initFood(0, 12)
           vm.$message({
             type: 'success',
             message: '成功抢夺' + food.food_name
           })
         }).catch(function () {
-          vm.initFood()
+          vm.initFood(0, 12)
           vm.$message({
             type: 'warning',
             message: '抢夺失败，手不够快~'
@@ -297,18 +313,27 @@ export default {
         })
       })
     },
-    initFood () {
+    initFood (offset, limit) {
       let vm = this
       axios.get('http://127.0.0.1/api/v0/food/foodlist?', {
-        params: {},
+        params: {
+          'offset': offset,
+          'limit': limit
+        },
         headers: {
           'Username': 'fengchuanling'
         }
       }).then(
         function (response) {
           vm.foodList = response.data['data']['food_list']
+          vm.foodTotal = response.data['data']['total']
         }
       )
+    },
+    changeFoodPage (val) {
+      var vm = this
+      var offset = (val - 1) * 12
+      vm.initFood(offset, 12)
     }
   }
 }
